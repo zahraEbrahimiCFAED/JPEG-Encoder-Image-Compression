@@ -1,4 +1,4 @@
-#include "streamfunctions.hpp"
+#include "jpeg.hpp"
 
 
 const uint8_t DefaultQuantLuminance[8*8] =

@@ -9,7 +9,7 @@ void cvtRGB2YC(IMAGE3 &in, IMAGE3s &out){
 	int c6 = 128;
 	int c7 = 107;
 	int c8 = 21;
-	//Doch float oder zumindest vorzeichenbehafteten typ verwenden
+
 	for (int y = 0; y < MAX_HEIGHT; y++) {
 		for (int x = 0; x < MAX_WIDTH; x++) {
 			#pragma HLS loop flatten off
