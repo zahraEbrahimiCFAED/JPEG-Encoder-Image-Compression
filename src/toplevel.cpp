@@ -31,10 +31,14 @@ void cvtRGB2YC(IMAGE3 &in, IMAGE3s &out){
 	}
 }
 
+/*
+ * Top level function to synthesize in color YCrCb 4:4:4
+ */
 void top_level(AXI_IN_STREAM &inStream,uint8_t q, AXI_STREAM &output){
 #pragma HLS INTERFACE ap_ctrl_none port=return
 #pragma HLS INTERFACE axis port=inStream
 #pragma HLS INTERFACE axis port=output
+#pragma HLS INTERFACE s_axilite port=q
 	IMAGE3 colorMat(MAX_HEIGHT, MAX_WIDTH);
 	IMAGE3s YCrCbMat(MAX_HEIGHT, MAX_WIDTH);
 
@@ -43,4 +47,23 @@ void top_level(AXI_IN_STREAM &inStream,uint8_t q, AXI_STREAM &output){
 	cvtRGB2YC(colorMat,YCrCbMat);
 	readMat(YCrCbMat,q,output);
 }
+
+/*
+ * Top level function to synthesize in grayscale
+ */
+void top_level_gr(AXI_IN_STREAM &inStream,uint8_t q, AXI_STREAM &output){
+#pragma HLS INTERFACE ap_ctrl_none port=return
+#pragma HLS INTERFACE axis port=inStream
+#pragma HLS INTERFACE axis port=output
+#pragma HLS INTERFACE s_axilite port=q
+
+	IMAGE3 colorMat(MAX_HEIGHT, MAX_WIDTH);
+	IMAGE1 YCrCbMat(MAX_HEIGHT, MAX_WIDTH);
+
+#pragma HLS Dataflow
+	hls::AXIvideo2Mat(inStream, colorMat);
+	hls::CvtColor<HLS_RGB2GRAY>(colorMat, YCrCbMat);
+	readMatGrey(YCrCbMat,q,output);
+}
+
 

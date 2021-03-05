@@ -98,3 +98,4 @@ struct AXI_BIT_WRITER2 {
 void readMat(IMAGE3s &matIn,uint8_t quality, AXI_STREAM &outputStream);
 void mergeStream(AXI_STREAM &s1,AXI_STREAM &s2,AXI_STREAM &s3);
 void writeHeader(AXI_BIT_WRITER2 &writer, int quality);
+void readMatGrey(IMAGE1 &matIn,uint8_t quality, AXI_STREAM &outputStream);

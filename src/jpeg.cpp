@@ -2,9 +2,9 @@
 
 
 const uint8_t DefaultQuantLuminance[8*8] =
-    { 16, 11, 10, 16, 24, 40, 51, 61, // there are a few experts proposing slightly more efficient values,
-      12, 12, 14, 19, 26, 58, 60, 55, // e.g. https://www.imagemagick.org/discourse-server/viewtopic.php?t=20333
-      14, 13, 16, 24, 40, 57, 69, 56, // btw: Google's Guetzli project optimizes the quantization tables per image
+    { 16, 11, 10, 16, 24, 40, 51, 61,
+      12, 12, 14, 19, 26, 58, 60, 55,
+      14, 13, 16, 24, 40, 57, 69, 56,
       14, 17, 22, 29, 51, 87, 80, 62,
       18, 22, 37, 56, 68,109,103, 77,
       24, 35, 55, 64, 81,104,113, 92,
@@ -30,10 +30,10 @@ const uint8_t ZigZagInv[8*8] =
       53,60,61,54,47,55,62,63 }; //            35,36,48,49,57,58,62,63
 
 
-const uint8_t DcLuminanceCodesPerBitsize[16]   = { 0,1,5,1,1,1,1,1,1,0,0,0,0,0,0,0 };   // sum = 12
-const uint8_t DcLuminanceValues         [12]   = { 0,1,2,3,4,5,6,7,8,9,10,11 };         // => 12 codes
-const uint8_t AcLuminanceCodesPerBitsize[16]   = { 0,2,1,3,3,2,4,3,5,5,4,4,0,0,1,125 }; // sum = 162
-const uint8_t AcLuminanceValues        [162]   =                                        // => 162 codes
+const uint8_t DcLuminanceCodesPerBitsize[16]   = { 0,1,5,1,1,1,1,1,1,0,0,0,0,0,0,0 };
+const uint8_t DcLuminanceValues         [12]   = { 0,1,2,3,4,5,6,7,8,9,10,11 };
+const uint8_t AcLuminanceCodesPerBitsize[16]   = { 0,2,1,3,3,2,4,3,5,5,4,4,0,0,1,125 };
+const uint8_t AcLuminanceValues        [162]   =
     { 0x01,0x02,0x03,0x00,0x04,0x11,0x05,0x12,0x21,0x31,0x41,0x06,0x13,0x51,0x61,0x07,0x22,0x71,0x14,0x32,0x81,0x91,0xA1,0x08, // 16*10+2 symbols because
       0x23,0x42,0xB1,0xC1,0x15,0x52,0xD1,0xF0,0x24,0x33,0x62,0x72,0x82,0x09,0x0A,0x16,0x17,0x18,0x19,0x1A,0x25,0x26,0x27,0x28, // upper 4 bits can be 0..F
       0x29,0x2A,0x34,0x35,0x36,0x37,0x38,0x39,0x3A,0x43,0x44,0x45,0x46,0x47,0x48,0x49,0x4A,0x53,0x54,0x55,0x56,0x57,0x58,0x59, // while lower 4 bits can be 1..A
@@ -58,9 +58,9 @@ const int16_t CodeWordLimit = 2048; // +/-2^11, maximum value after DCT
 template <typename Number, typename Limit>
 Number clamp(Number value, Limit minValue, Limit maxValue)
 {
-  if (value <= minValue) return minValue; // never smaller than the minimum
-  if (value >= maxValue) return maxValue; // never bigger  than the maximum
-  return value;                           // value was inside interval, keep it
+  if (value <= minValue) return minValue;
+  if (value >= maxValue) return maxValue;
+  return value;
 }
 
 BitCode huffmanLuminanceDC[256];
@@ -198,7 +198,6 @@ void DCT(float16 block[8 * 8], uint8_t stride) {
 	float16& block6 = block[6 * stride];
 	float16& block7 = block[7 * stride];
 
-	// based on https://dev.w3.org/Amaya/libjpeg/jfdctflt.c , the original variable names can be found in my comments
 	float16 add07 = block0 + block7;
 	float16 sub07 = block0 - block7;
 	float16 add16 = block1 + block6;
@@ -423,54 +422,7 @@ void writeHeader(AXI_BIT_WRITER2 &writer, uint8_t quality_) {
 	writer.writeLastSymbol();
 }
 
-/*
-void executeEncode(IMAGE3 &matIn,AXI_BIT_WRITER2 &datawriter) {
-	datawriter.writeStartSymbol();
-	uint8_t linebuffer1[8][MAX_WIDTH];
-	uint8_t linebuffer2[8][MAX_WIDTH];
-	uint8_t linebuffer3[8][MAX_WIDTH];
-	float16 window1[8][8];
-	float16 window2[8][8];
-	float16 window3[8][8];
-	int line = 0;
-	int16_t lastYDC = 0, lastCbDC = 0, lastCrDC = 0;
-	for (int y = 0; y < MAX_HEIGHT; y++) {
-		for (int x = 0; x < MAX_WIDTH; x++) {
-			#pragma HLS loop flatten off
-			#pragma HLS pipeline II=2
-			hls::Scalar<3, uint8_t> pixel;
-			matIn >> pixel;
-
-			linebuffer1[line][x] = pixel.val[0];
-			linebuffer2[line][x] = pixel.val[1];
-			linebuffer3[line][x] = pixel.val[2];
-		}
-		if (line == 7) {
-			line = 0;
-			for (int step = 0; step < MAX_WIDTH; step += 8) {
-				for (int i = 0; i < 8; i++) {
-					for (int j = 0; j < 8; j++) {
-						auto b = linebuffer1[j][i + step];
-						auto g = linebuffer2[j][i + step];
-						auto r = linebuffer3[j][i + step];
-						window1[j][i] = rgb2y(r, g, b) - 128;//y
-						window2[j][i] = rgb2cb(r, g, b);	//cr
-						window3[j][i] = rgb2cr(r, g, b);	//cb
-					}
-				}
-				lastYDC  = encodeBlock(datawriter, window1, scaledLuminance,  lastYDC,  huffmanLuminanceDC,   huffmanLuminanceAC);
-				lastCbDC = encodeBlock(datawriter, window2, scaledChrominance,lastCbDC, huffmanChrominanceDC, huffmanChrominanceAC);
-				lastCrDC = encodeBlock(datawriter, window3, scaledChrominance,lastCrDC, huffmanChrominanceDC, huffmanChrominanceAC);
-			}
-		} else {
-			line++;
-		}
-	}
-	datawriter.writeEndofJPEG();
-}
-*/
-
-void executeEncode_withoutCVT_COLOR(IMAGE3s &matIn,AXI_BIT_WRITER2 &datawriter) {
+void Encode_color(IMAGE3s &matIn,AXI_BIT_WRITER2 &datawriter) {
 	datawriter.writeStartSymbol();
 	int16_t linebuffer1[8][MAX_WIDTH];
 	int16_t linebuffer2[8][MAX_WIDTH];
@@ -516,12 +468,180 @@ void executeEncode_withoutCVT_COLOR(IMAGE3s &matIn,AXI_BIT_WRITER2 &datawriter) 
 	datawriter.writeEndofJPEG();
 }
 
-
 void readMat(IMAGE3s &matIn,uint8_t quality, AXI_STREAM &outputStream){
 #pragma HLS Dataflow
 	AXI_BIT_WRITER2 headerwriter,datawriter;
 	writeHeader(headerwriter,quality);
-	executeEncode_withoutCVT_COLOR(matIn,datawriter);
+	Encode_color(matIn,datawriter);
+	mergeStream(headerwriter.stream,datawriter.stream,outputStream);
+}
+
+
+/*
+ * -----------Grayscale-----------------
+ */
+
+void writeHeaderGray(AXI_BIT_WRITER2 &writer, uint8_t quality_) {
+
+	auto quality = clamp<uint8_t>(quality_, 1, 100);
+	quality = quality < 50 ? 5000 / quality : 200 - quality * 2;
+
+	for (auto i = 0; i < 64; i++) {
+		uint8_t lum = (DefaultQuantLuminance[ZigZagInv[i]] * quality + 50)
+				/ 100;
+		uint8_t chr = (DefaultQuantChrominance[ZigZagInv[i]] * quality + 50)
+				/ 100;
+		quantLuminance[i] = clamp(lum, 1, 255);
+		quantChrominance[i] = clamp(chr, 1, 255);
+	}
+
+	generateHuffmanTable(DcLuminanceCodesPerBitsize, DcLuminanceValues,huffmanLuminanceDC);
+	generateHuffmanTable(AcLuminanceCodesPerBitsize, AcLuminanceValues,huffmanLuminanceAC);
+	generateHuffmanTable(DcChrominanceCodesPerBitsize, DcChrominanceValues,huffmanChrominanceDC);
+	generateHuffmanTable(AcChrominanceCodesPerBitsize, AcChrominanceValues,huffmanChrominanceAC);
+
+
+	writer.writeStartSymbol();
+
+	uint16_t height = MAX_HEIGHT;
+	uint16_t width = MAX_WIDTH;
+
+	writer.write(0xff);
+	writer.write(0xD8);
+
+	writer.write(0xff);
+	writer.write(0xDB);
+
+	writer.write(0x00);
+	writer.write(0x84);
+	writer.write(0x00);
+
+	writer.write(quantLuminance);
+	writer.write(1);
+	writer.write(quantChrominance);
+
+
+
+	writer.addMarker(0xC4, (2 + 208 + 208));
+	writer.write(0);
+	writer.write(DcLuminanceCodesPerBitsize);
+	writer.write(DcLuminanceValues);
+	writer.write(0x10);
+	writer.write(AcLuminanceCodesPerBitsize);
+	for (auto i =0; i<162;i++){
+		writer.write(AcLuminanceValues[i]);
+	}
+	//writer.write(AcLuminanceValues);
+
+
+
+	writer.write(1);
+	writer.write(DcChrominanceCodesPerBitsize);
+	writer.write(DcChrominanceValues);
+	writer.write(0x11);
+	writer.write(AcChrominanceCodesPerBitsize);
+	for (auto i =0; i<162;i++){
+		writer.write(AcChrominanceValues[i]);
+	}
+
+
+	writer.addMarker(0xC0, 8 + 3 * 1);
+
+	writer.write(0x08);//precision
+
+	writer.write(height >> 8);
+	writer.write((uint8_t)height);
+
+	writer.write(width >> 8);
+	writer.write((uint8_t)width);
+
+	writer.write(1);//# of components
+
+	writer.write(0x01);
+	writer.write(0x11);
+	writer.write(0x00);
+
+	writer.addMarker(0xDA,8);//Start of scan(data)
+
+	writer.write(0x01);//# of components
+	writer.write(0x01);
+	writer.write(0x00);
+
+	writer.write(0x0);//spectral
+	writer.write(0x3f);
+	writer.write(0x0);
+
+
+	static const float AanScaleFactors[8] = { 1, 1.387039845f, 1.306562965f,
+			1.175875602f, 1, 0.785694958f, 0.541196100f, 0.275899379f };
+
+	prepQuant:
+	for (auto i = 0; i < 8 * 8; i++) {
+		auto row = ZigZagInv[i] / 8;
+		auto column = ZigZagInv[i] % 8;
+		auto factor = 1 / (AanScaleFactors[row] * AanScaleFactors[column] * 8);
+		scaledLuminance[ZigZagInv[i]] = factor / quantLuminance[i];
+		scaledChrominance[ZigZagInv[i]] = factor / quantChrominance[i];
+	}
+
+
+	uint8_t numBits = 1;
+	int32_t mask = 1;
+	BitCode* codewords = &codewordsArray[CodeWordLimit];
+	for (int16_t value = 1; value < CodeWordLimit; value++) {
+		if (value > mask) {
+			numBits++;
+			mask = (mask << 1) | 1;
+		}
+		codewords[-value] = BitCode(mask - value, numBits);
+		codewords[+value] = BitCode(value, numBits);
+	}
+
+	writer.writeLastSymbol();
+}
+
+void Encode_gray(IMAGE1 &matIn,AXI_BIT_WRITER2 &datawriter) {
+	datawriter.writeStartSymbol();
+	int16_t linebuffer1[8][MAX_WIDTH];
+	float16 window1[8][8];
+
+	int line = 0;
+	int16_t lastYDC = 0, lastCbDC = 0, lastCrDC = 0;
+	for (int y = 0; y < MAX_HEIGHT; y++) {
+		for (int x = 0; x < MAX_WIDTH; x++) {
+			#pragma HLS loop flatten off
+			#pragma HLS pipeline II=2
+			hls::Scalar<1, uint8_t> pixel;
+			matIn >> pixel;
+			linebuffer1[line][x] = pixel.val[0];	//y
+
+		}
+		if (line == 7) {
+			line = 0;
+			for (int step = 0; step < MAX_WIDTH; step += 8) {
+				for (int i = 0; i < 8; i++) {
+					for (int j = 0; j < 8; j++) {
+						window1[j][i] = linebuffer1[j][i + step];	//y
+
+					}
+				}
+				lastYDC = encodeBlock(datawriter, window1, scaledLuminance,
+						lastYDC, huffmanLuminanceDC, huffmanLuminanceAC);
+
+			}
+		} else {
+			line++;
+		}
+	}
+	datawriter.flush();
+	datawriter.writeEndofJPEG();
+}
+
+void readMatGrey(IMAGE1 &matIn,uint8_t quality, AXI_STREAM &outputStream){
+#pragma HLS Dataflow
+	AXI_BIT_WRITER2 headerwriter,datawriter;
+	writeHeaderGray(headerwriter,quality);
+	Encode_gray(matIn,datawriter);
 	mergeStream(headerwriter.stream,datawriter.stream,outputStream);
 }
 

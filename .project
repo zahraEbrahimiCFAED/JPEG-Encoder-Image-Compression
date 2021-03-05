@@ -36,5 +36,55 @@
 			<type>2</type>
 			<location>C:/Users/Dennis/Desktop/neu/JPEG_Encoder/.apc/.tb</location>
 		</link>
+		<link>
+			<name>solution1/constraints</name>
+			<type>2</type>
+			<location>C:/Users/Dennis/Desktop/neu/JPEG_Encoder/solution1/.tcls</location>
+		</link>
+		<link>
+			<name>source/jpeg.cpp</name>
+			<type>1</type>
+			<location>C:/Users/Dennis/Desktop/neu/JPEG_Encoder/src/jpeg.cpp</location>
+		</link>
+		<link>
+			<name>source/jpeg.hpp</name>
+			<type>1</type>
+			<location>C:/Users/Dennis/Desktop/neu/JPEG_Encoder/src/jpeg.hpp</location>
+		</link>
+		<link>
+			<name>source/toplevel.cpp</name>
+			<type>1</type>
+			<location>C:/Users/Dennis/Desktop/neu/JPEG_Encoder/src/toplevel.cpp</location>
+		</link>
+		<link>
+			<name>source/toplevel.hpp</name>
+			<type>1</type>
+			<location>C:/Users/Dennis/Desktop/neu/JPEG_Encoder/src/toplevel.hpp</location>
+		</link>
+		<link>
+			<name>testbench/files</name>
+			<type>2</type>
+			<location>C:/Users/Dennis/Desktop/neu/JPEG_Encoder/files</location>
+		</link>
+		<link>
+			<name>testbench/tb.cpp</name>
+			<type>1</type>
+			<location>C:/Users/Dennis/Desktop/neu/JPEG_Encoder/tb/tb.cpp</location>
+		</link>
+		<link>
+			<name>solution1/constraints/.xml.directive</name>
+			<type>1</type>
+			<location>C:/Users/Dennis/Desktop/neu/JPEG_Encoder/solution1/solution1.directive</location>
+		</link>
+		<link>
+			<name>solution1/constraints/directives.tcl</name>
+			<type>1</type>
+			<location>C:/Users/Dennis/Desktop/neu/JPEG_Encoder/solution1/directives.tcl</location>
+		</link>
+		<link>
+			<name>solution1/constraints/script.tcl</name>
+			<type>1</type>
+			<location>C:/Users/Dennis/Desktop/neu/JPEG_Encoder/solution1/script.tcl</location>
+		</link>
 	</linkedResources>
 </projectDescription>
